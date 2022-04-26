@@ -1,0 +1,107 @@
+﻿@model List<AppUser>
+@{
+    ViewData["Title"] = "Chat";
+}
+
+<h1>Chat</h1>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-8"></div>
+        <div class="container">
+            <div class="row">&nbsp;</div>
+            <div class="row">
+                <input type="hidden" name="receiverId" value=""  id="receiverIdInput"/>
+                <div class="col-2">User</div>
+                <div class="col-4"><input type="text" id="userInput" /></div>
+            </div>
+            <div class="row">
+                <div class="col-2">Message</div>
+                <div class="col-4"><input type="text" id="messageInput" /></div>
+            </div>
+            <div class="row">&nbsp;</div>
+            <div class="row">
+                <div class="col-6">
+                    <input type="button" id="sendButton" value="Send Message" />
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="row">
+                <div class="col-12">
+                    <hr />
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-6">
+                    <ul id="messagesList"></ul>
+                </div>
+            </div>
+        </div>
+       
+
+        <div class="col-md-4">
+            <ul class="list-group">
+                @foreach (var item in Model)
+                {
+                    <li id="@item.Id" class="list-group-item user-item"><span class="mr-1 @(item.ConnectionID==null ? "bg-offline" : "bg-online")" style="width:10px; height:10px; border-radius:50%; display:inline-block"></span> <a class="mr-2 ml-2" asp-action="ShowToaster" asp-route-id="@item.Id">Show</a> @item.Fullname </li>
+                }
+                
+            </ul>
+        </div>
+
+    </div>
+</div>
+
+
+
+
+@section Scripts{ 
+
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
+    <script>
+        var connection = new signalR.HubConnectionBuilder().withUrl("/chatHub").build();
+        connection.start();
+        console.log(connection);
+        $("#sendButton").click(function () {
+            let recevierId = $("#receiverIdInput").val();
+            let message = $("#messageInput").val();
+
+          //  console.log(`user: ${name} - message: ${message}`)
+
+            connection.invoke("SendMessage", recevierId, message);
+        });
+
+        $(".user-item").click(function () {
+            let UserId = $(this).attr("id");
+            $("#receiverIdInput").val(UserId);
+        })
+
+        connection.on("ReceiveMessage", function (name, message, date) {
+            let li = document.createElement("li");
+            li.textContent = name + " : " + message + " - " + date;
+            $("#messagesList").append(li);
+            console.log(`${name}: ${message}    ${date}`);
+        })
+
+        connection.on("UserConnected", function (userid) {
+            let element = document.getElementById(userid);
+            $(element).find("span").removeClass("bg-offline");
+            $(element).find("span").addClass("bg-online");
+        });
+
+        connection.on("UserDisConnected", function (userid) {
+            let element = document.getElementById(userid)
+            $(element).find("span").removeClass("bg-online");
+            $(element).find("span").addClass("bg-offline");
+        });
+
+        connection.on("ShowToaster", function () {
+            alert("Your Order Accepted")
+        })
+
+
+    </script>
+    
+
+}
